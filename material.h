@@ -33,6 +33,15 @@ class lambertian : public material {
     color albedo;
 };
 
+class phong : public material {
+  public:
+    phong(const color& albedo, double shininess)
+      : albedo(albedo), shininess(shininess) {}
+
+    color albedo;
+    double shininess;
+};
+
 class metal : public material {
   public:
     metal(const color& albedo, double fuzz) : albedo(albedo), fuzz(fuzz < 1 ? fuzz : 1) {}
