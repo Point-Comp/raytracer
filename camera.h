@@ -113,20 +113,32 @@ class camera {
     hit_record rec;
 
     if (world.hit(r, interval(0.001, infinity), rec)) {
+        // Phong branch: is this a phong material?
         if (auto ph = dynamic_cast<const phong*>(rec.mat.get())) {
             vec3 N = unit_vector(rec.normal);
             vec3 L = unit_vector(light_pos - rec.p);
 
+            // Shadow ray
             double dist_to_light = (light_pos - rec.p).length();
             ray shadow_ray(rec.p, L);
             hit_record shadow_rec;
             bool in_shadow = world.hit(shadow_ray, interval(0.001, dist_to_light), shadow_rec);
 
-            double diff = 0.0;
-            if (!in_shadow)
-                diff = std::fmax(0.0, dot(N, L));
+            color result = ph->albedo * 0.1;   // ambient
 
-            return diff * ph->albedo * light_color;
+            if (!in_shadow) {
+                // Diffuse
+                double diff = std::fmax(0.0, dot(N, L));
+                result += diff * ph->albedo * light_color;
+
+                // Specular
+                vec3 V = unit_vector(-r.direction());
+                vec3 R = reflect(-L, N);
+                double spec = std::pow(std::fmax(0.0, dot(R, V)), ph->shininess);
+                result += spec * light_color;
+            }
+
+            return result;
         }
 
         ray scattered;
