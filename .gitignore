@@ -1,2 +1,13 @@
 Data/
 .vscode/
+
+# build outputs
+renderer
+C++/Tests/test_pfm
+
+# render outputs
+*.ppm
+out.png
+
+# editor scratch
+tempCodeRunnerFile.py
