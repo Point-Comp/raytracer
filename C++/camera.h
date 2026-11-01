@@ -47,6 +47,20 @@ class camera {
             }
         }
 
+        std::vector<float> floats;
+        floats.reserve(image_width * image_height * 3);
+
+        for (int j = image_height - 1; j >= 0; j--) {      // bottom row first
+            for (int i = 0; i < image_width; i++) {
+                const color& c = framebuffer[j * image_width + i];
+                floats.push_back(float(c.x()));
+                floats.push_back(float(c.y()));
+                floats.push_back(float(c.z()));
+            }
+        }
+
+        write_pfm("out.pfm", image_width, image_height, floats);
+
 
         std::clog << "\rDone.                 \n";
     }

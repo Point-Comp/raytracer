@@ -14,3 +14,4 @@ void write_pfm(const std::string& path, int width, int height, const std::vector
     out.write((const char*)pixels.data(), width * height * 3 * sizeof(float));
 
 }
+
