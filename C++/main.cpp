@@ -11,18 +11,18 @@
 int main() {
     hittable_list world;
 
-    // ground (phong so it catches shadows)
-    auto ground = make_shared<phong>(color(0.5, 0.5, 0.5), 1.0);
+    
+    auto ground = make_shared<phong>(color(0.5, 0.5, 0.5), 1.0); // color(0.5, 0.5, 0.5), meaning it reflects half the light that hits it
     world.add(make_shared<sphere>(point3(0, -1000, 0), 1000, ground));
 
-    // the teapot, Phong-shaded
+   
     auto teapot_mat = make_shared<phong>(color(0.9, 0.2, 0.2), 32.0);
     load_obj("utah_teapot.obj", world, teapot_mat);
 
     camera cam;
     cam.aspect_ratio      = 16.0 / 9.0;
-    cam.image_width       = 400;    // keep low while you frame it
-    cam.samples_per_pixel = 30;
+    cam.image_width       = 100;    
+    cam.samples_per_pixel = 4;
     cam.max_depth         = 20;
 
     cam.vfov     = 35;

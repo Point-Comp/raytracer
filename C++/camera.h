@@ -3,6 +3,7 @@
 
 #include "hittable.h"
 #include "material.h"
+#include <vector>
 
 class camera {
   public:
@@ -20,7 +21,7 @@ class camera {
     double defocus_angle = 0;  // Variation angle of rays through each pixel
     double focus_dist = 10;    // Distance from camera lookfrom point to plane of perfect focus
     point3 light_pos = point3(5, 5, 5);   // point light location
-    color  light_color = color(1, 1, 1);  // light color/intensity. 
+    color  light_color = color(1, 1, 1);  // light color/intensity. i
 
 
     void render(const hittable& world) {
@@ -36,9 +37,16 @@ class camera {
                     ray r = get_ray(i, j);
                     pixel_color += ray_color(r, max_depth, world);
                 }
-                write_color(std::cout, pixel_samples_scale * pixel_color);
+                framebuffer[j * image_width + i] = pixel_samples_scale * pixel_color;
             }
         }
+
+        for(int j=0; j<image_height; j++){
+            for(int i=0; i<image_width; i++){
+                write_color(std::cout, framebuffer[j * image_width + i]);
+            }
+        }
+
 
         std::clog << "\rDone.                 \n";
     }
@@ -53,12 +61,14 @@ class camera {
     vec3   u, v, w;              // Camera frame basis vectors
     vec3   defocus_disk_u;       // Defocus disk horizontal radius
     vec3   defocus_disk_v;       // Defocus disk vertical radius
+    std::vector<color> framebuffer;
 
     void initialize() {
         image_height = int(image_width / aspect_ratio);
         image_height = (image_height < 1) ? 1 : image_height;
         pixel_samples_scale = 1.0 / samples_per_pixel;
         center = lookfrom;
+        framebuffer.resize(image_width * image_height);
 
         auto theta = degrees_to_radians(vfov);
         auto h = std::tan(theta/2);

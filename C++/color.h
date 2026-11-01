@@ -16,7 +16,7 @@ inline double linear_to_gamma(double linear_component)
 }
 
 
-void write_color(std::ostream& out, const color& pixel_color) {
+void write_color(std::ostream& out, const color& pixel_color) { //this is PPM, responsible for image output
     auto r = pixel_color.x();
     auto g = pixel_color.y();
     auto b = pixel_color.z();
@@ -38,5 +38,10 @@ void write_color(std::ostream& out, const color& pixel_color) {
 
     out << rbyte << ' ' << gbyte << ' ' << bbyte << '\n';
 }
+
+//PFM reader is necessary for error metrics
+
+
+
 
 #endif
