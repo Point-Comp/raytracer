@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-void write_pfm(const std::string& path, int width, int height, const std::vector<float>& pixels){
+inline void write_pfm(const std::string& path, int width, int height, const std::vector<float>& pixels){
 
 
     std::ofstream out{path, std::ios::out | std::ios::binary};

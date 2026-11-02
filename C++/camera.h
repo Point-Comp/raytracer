@@ -4,6 +4,7 @@
 #include "hittable.h"
 #include "material.h"
 #include <vector>
+#include "hdr.h"
 
 class camera {
   public:
@@ -22,6 +23,7 @@ class camera {
     double focus_dist = 10;    // Distance from camera lookfrom point to plane of perfect focus
     point3 light_pos = point3(5, 5, 5);   // point light location
     color  light_color = color(1, 1, 1);  // light color/intensity. i
+    shared_ptr<HDR> env;
 
 
     void render(const hittable& world) {
@@ -173,9 +175,14 @@ class camera {
     }
 
     vec3 unit_direction = unit_vector(r.direction());
+
+    if (env)
+        return env->sample(unit_direction);
+
     auto a = 0.5*(unit_direction.y() + 1.0);
     return (1.0-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
 }
+
 };
 
 #endif
