@@ -5,6 +5,7 @@
 #include "sphere.h"
 #include "triangle.h"
 #include "mesh.h"
+#include "bvh.h"
 
 #include <iostream>
 
@@ -20,6 +21,11 @@ int main() {
     auto mirror = make_shared<metal>(color(0.9, 0.9, 0.9), 0.0);
     world.add(make_shared<sphere>(point3(2.5, 1.0, 1.0), 1.0, mirror));
 
+    // Wrap the scene in a BVH so each ray tests ~log2(n) boxes instead of every object.
+    // Set use_bvh to false to render the plain list, for comparing against the old code.
+    const bool use_bvh = true;
+    bvh_node bvh(world);
+
     camera cam;
     cam.aspect_ratio      = 16.0 / 9.0;
     cam.image_width       = 200;
@@ -33,5 +39,8 @@ int main() {
     cam.vup      = vec3(0, 1, 0);
     cam.defocus_angle = 0;
 
-    cam.render(world);
+    if (use_bvh)
+        cam.render(bvh);
+    else
+        cam.render(world);
 }

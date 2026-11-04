@@ -7,7 +7,9 @@
 class triangle : public hittable {
   public:
     triangle(const point3& v0, const point3& v1, const point3& v2, shared_ptr<material> mat)
-      : v0(v0), v1(v1), v2(v2), mat(mat) {}
+      : v0(v0), v1(v1), v2(v2), mat(mat) {
+        bbox = aabb(aabb(v0, v1), aabb(v0, v2));
+    }
 
     bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
         vec3 edge1 = v1 - v0;
@@ -42,9 +44,12 @@ class triangle : public hittable {
         return true;
     }
 
+    aabb bounding_box() const override { return bbox; }
+
   private:
     point3 v0, v1, v2;
     shared_ptr<material> mat;
+    aabb bbox;
 };
 
 #endif
