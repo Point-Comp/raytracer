@@ -6,6 +6,7 @@
 #include "triangle.h"
 #include "mesh.h"
 #include "bvh.h"
+#include "merl.h"
 
 #include <iostream>
 
@@ -15,7 +16,7 @@ int main() {
     auto ground = make_shared<lambertian>(color(0.5, 0.5, 0.5));
     world.add(make_shared<sphere>(point3(0, -1000, 0), 1000, ground));
 
-    auto teapot_mat = make_shared<lambertian>(color(0.9, 0.2, 0.2));
+    auto teapot_mat = make_shared<merl>("../Data/merl/gold-metallic-paint.binary");
     load_obj("utah_teapot.obj", world, teapot_mat);
 
     auto mirror = make_shared<metal>(color(0.9, 0.9, 0.9), 0.0);
