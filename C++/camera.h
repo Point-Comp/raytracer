@@ -3,26 +3,26 @@
 
 #include "hittable.h"
 #include "material.h"
+#include "onb.h"
 #include <vector>
 #include "hdr.h"
 
 class camera {
   public:
-    double aspect_ratio = 1.0;  // Ratio of image width over height
-    int    image_width  = 100;  // Rendered image width in pixel count
-    int    samples_per_pixel = 10;   // Count of random samples for each pixel
-    int    max_depth         = 10;   // Maximum number of ray bounces into scene
-    
+    double aspect_ratio = 1.0;
+    int    image_width  = 100;
+    int    samples_per_pixel = 10;
+    int    max_depth         = 10;
 
-    double vfov = 90;  // Vertical view angle (field of view)
-    point3 lookfrom = point3(0,0,0);   // Point camera is looking from
-    point3 lookat   = point3(0,0,-1);  // Point camera is looking at
-    vec3   vup      = vec3(0,1,0);     // Camera-relative "up" direction
+    double vfov = 90;
+    point3 lookfrom = point3(0,0,0);
+    point3 lookat   = point3(0,0,-1);
+    vec3   vup      = vec3(0,1,0);
 
-    double defocus_angle = 0;  // Variation angle of rays through each pixel
-    double focus_dist = 10;    // Distance from camera lookfrom point to plane of perfect focus
-    point3 light_pos = point3(5, 5, 5);   // point light location
-    color  light_color = color(1, 1, 1);  // light color/intensity. i
+    double defocus_angle = 0;
+    double focus_dist = 10;
+    point3 light_pos = point3(5, 5, 5);
+    color  light_color = color(1, 1, 1);
     shared_ptr<HDR> env;
 
 
@@ -52,7 +52,7 @@ class camera {
         std::vector<float> floats;
         floats.reserve(image_width * image_height * 3);
 
-        for (int j = image_height - 1; j >= 0; j--) {      // bottom row first
+        for (int j = image_height - 1; j >= 0; j--) {
             for (int i = 0; i < image_width; i++) {
                 const color& c = framebuffer[j * image_width + i];
                 floats.push_back(float(c.x()));
@@ -68,15 +68,15 @@ class camera {
     }
 
   private:
-    int    image_height;   // Rendered image height
-    double pixel_samples_scale;  // Color scale factor for a sum of pixel samples
-    point3 center;         // Camera center
-    point3 pixel00_loc;    // Location of pixel 0, 0
-    vec3   pixel_delta_u;  // Offset to pixel to the right
-    vec3   pixel_delta_v;  // Offset to pixel below
-    vec3   u, v, w;              // Camera frame basis vectors
-    vec3   defocus_disk_u;       // Defocus disk horizontal radius
-    vec3   defocus_disk_v;       // Defocus disk vertical radius
+    int    image_height;
+    double pixel_samples_scale;
+    point3 center;
+    point3 pixel00_loc;
+    vec3   pixel_delta_u;
+    vec3   pixel_delta_v;
+    vec3   u, v, w;
+    vec3   defocus_disk_u;
+    vec3   defocus_disk_v;
     std::vector<color> framebuffer;
 
     void initialize() {
@@ -95,8 +95,8 @@ class camera {
         u = unit_vector(cross(vup, w));
         v = cross(w, u);
 
-        vec3 viewport_u = viewport_width * u;    // Vector across viewport horizontal edge
-        vec3 viewport_v = viewport_height * -v;  // Vector down viewport vertical edge
+        vec3 viewport_u = viewport_width * u;
+        vec3 viewport_v = viewport_height * -v;
 
         pixel_delta_u = viewport_u / image_width;
         pixel_delta_v = viewport_v / image_height;
@@ -139,25 +139,21 @@ class camera {
     hit_record rec;
 
     if (world.hit(r, interval(0.001, infinity), rec)) {
-        // Phong branch: is this a phong material?
         if (auto ph = dynamic_cast<const phong*>(rec.mat.get())) {
             vec3 N = unit_vector(rec.normal);
             vec3 L = unit_vector(light_pos - rec.p);
 
-            // Shadow ray
             double dist_to_light = (light_pos - rec.p).length();
             ray shadow_ray(rec.p, L);
             hit_record shadow_rec;
             bool in_shadow = world.hit(shadow_ray, interval(0.001, dist_to_light), shadow_rec);
 
-            color result = ph->albedo * 0.1;   // ambient
+            color result = ph->albedo * 0.1;
 
             if (!in_shadow) {
-                // Diffuse
                 double diff = std::fmax(0.0, dot(N, L));
                 result += diff * ph->albedo * light_color;
 
-                // Specular
                 vec3 V = unit_vector(-r.direction());
                 vec3 R = reflect(-L, N);
                 double spec = std::pow(std::fmax(0.0, dot(R, V)), ph->shininess);
@@ -165,6 +161,17 @@ class camera {
             }
 
             return result;
+        }
+
+        onb frame(rec.normal);
+        vec3 wo = frame.to_local(unit_vector(-r.direction()));
+
+        bsdf_sample bs;
+        if (rec.mat->sample_bsdf(wo, bs)) {
+            ray scattered(rec.p, frame.to_world(bs.direction));
+            double cos_theta = bs.direction.y();
+            color weight = bs.value * cos_theta / bs.pdf;
+            return weight * ray_color(scattered, depth-1, world);
         }
 
         ray scattered;
@@ -182,7 +189,6 @@ class camera {
     auto a = 0.5*(unit_direction.y() + 1.0);
     return (1.0-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
 }
-
 };
 
 #endif

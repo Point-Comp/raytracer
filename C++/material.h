@@ -3,6 +3,12 @@
 
 #include "hittable.h"
 
+struct bsdf_sample {
+    vec3   direction;
+    color  value;
+    double pdf;
+};
+
 class material {
   public:
     virtual ~material() = default;
@@ -10,6 +16,18 @@ class material {
     virtual bool scatter(
         const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered
     ) const {
+        return false;
+    }
+
+    virtual color eval(const vec3& wi, const vec3& wo) const {
+        return color(0,0,0);
+    }
+
+    virtual double pdf(const vec3& wi, const vec3& wo) const {
+        return 0.0;
+    }
+
+    virtual bool sample_bsdf(const vec3& wo, bsdf_sample& out) const {
         return false;
     }
 };
@@ -27,6 +45,28 @@ class lambertian : public material {
         scattered = ray(rec.p, scatter_direction);
         attenuation = albedo;
         return true;
+    }
+
+    color eval(const vec3& wi, const vec3& wo) const override {
+        if (wi.y() <= 0 || wo.y() <= 0) return color(0,0,0);
+        return albedo / pi;
+    }
+
+    double pdf(const vec3& wi, const vec3& wo) const override {
+        if (wi.y() <= 0 || wo.y() <= 0) return 0.0;
+        return wi.y() / pi;
+    }
+
+    bool sample_bsdf(const vec3& wo, bsdf_sample& out) const override {
+        if (wo.y() <= 0) return false;
+
+        vec3 dir = vec3(0,1,0) + random_unit_vector();
+        if (dir.near_zero()) dir = vec3(0,1,0);
+        out.direction = unit_vector(dir);
+
+        out.value = eval(out.direction, wo);
+        out.pdf   = pdf(out.direction, wo);
+        return out.pdf > 0;
     }
 
   private:
@@ -86,11 +126,10 @@ class dielectric : public material {
     }
 
   private:
-  
+
     double refraction_index;
 
     static double reflectance(double cosine, double refraction_index) {
-        // Use Schlick's approximation for reflectance.
         auto r0 = (1 - refraction_index) / (1 + refraction_index);
         r0 = r0*r0;
         return r0 + (1-r0)*std::pow((1 - cosine),5);
