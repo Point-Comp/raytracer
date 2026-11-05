@@ -3,11 +3,43 @@
 
 #include "material.h"
 
+#include <cstdlib>
+#include <fstream>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+
 // Microfacet reflection with the GGX distribution, in the local shading frame (normal = +y)
 class ggx : public material {
   public:
     ggx(const color& f0, double roughness)
       : f0(f0), alpha(std::fmax(1e-3, roughness * roughness)) {}
+
+    // Loads parameters fitted by Python/fit_ggx.py, e.g. ggx("../Data/ggx_params.json", "gold-metallic-paint")
+    ggx(const std::string& params_path, const std::string& material_name) {
+        std::ifstream file(params_path);
+        if (!file.is_open())
+            throw std::runtime_error("ggx: cannot open " + params_path);
+        std::stringstream ss;
+        ss << file.rdbuf();
+        std::string json = ss.str();
+
+        size_t entry = json.find("\"" + material_name + "\"");
+        if (entry == std::string::npos)
+            throw std::runtime_error("ggx: no entry for " + material_name + " in " + params_path);
+        size_t end = json.find('}', entry);
+
+        double roughness = read_number(json, json.find("\"roughness\"", entry), end, material_name);
+        size_t f0_pos = json.find('[', json.find("\"f0\"", entry));
+        double c[3];
+        for (int i = 0; i < 3; i++) {
+            c[i] = read_number(json, f0_pos, end, material_name);
+            f0_pos = json.find(',', f0_pos + 1);
+        }
+
+        f0 = color(c[0], c[1], c[2]);
+        alpha = std::fmax(1e-3, roughness * roughness);
+    }
 
     color eval(const vec3& wi, const vec3& wo) const override {
         if (wi.y() <= 0 || wo.y() <= 0) return color(0,0,0);
@@ -49,6 +81,16 @@ class ggx : public material {
   private:
     color  f0;
     double alpha;
+
+    // Parses the first number after pos (skipping the key, ':' and '['), stopping before end
+    static double read_number(const std::string& json, size_t pos, size_t end, const std::string& name) {
+        if (pos == std::string::npos || pos >= end)
+            throw std::runtime_error("ggx: malformed entry for " + name);
+        size_t start = json.find_first_of("-0123456789", json.find_first_of(":[,", pos) + 1);
+        if (start == std::string::npos || start >= end)
+            throw std::runtime_error("ggx: malformed entry for " + name);
+        return std::strtod(json.c_str() + start, nullptr);
+    }
 
     double D(const vec3& h) const {
         double a2 = alpha * alpha;

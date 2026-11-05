@@ -10,14 +10,21 @@
 #include "ggx.h"
 
 #include <iostream>
+#include <string>
 
-int main() {
+int main(int argc, char** argv) {
+    std::string teapot_name = argc > 1 ? argv[1] : "ggx";
+
     hittable_list world;
 
     auto ground = make_shared<lambertian>(color(0.5, 0.5, 0.5));
     world.add(make_shared<sphere>(point3(0, -1000, 0), 1000, ground));
 
-    auto teapot_mat = make_shared<ggx>(color(1.0, 0.71, 0.29), 0.3);
+    shared_ptr<material> teapot_mat;
+    if (teapot_name == "merl")
+        teapot_mat = make_shared<merl>("../Data/merl/gold-metallic-paint.binary");
+    else
+        teapot_mat = make_shared<ggx>("../Data/ggx_params.json", "gold-metallic-paint");
     load_obj("utah_teapot.obj", world, teapot_mat);
 
     auto mirror = make_shared<metal>(color(0.9, 0.9, 0.9), 0.0);
@@ -31,7 +38,7 @@ int main() {
     camera cam;
     cam.aspect_ratio      = 16.0 / 9.0;
     cam.image_width       = 200;
-    cam.samples_per_pixel = 20;
+    cam.samples_per_pixel = argc > 2 ? std::stoi(argv[2]) : 20;
     cam.max_depth         = 10;
     cam.env = make_shared<HDR>("../Data/kloppenheim_06_2k.hdr");
 
