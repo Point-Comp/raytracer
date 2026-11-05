@@ -22,3 +22,4 @@ test_merl_sampling
 test_ggx_reference
 C++/teapot_*
 __pycache__/
+C++/ppm
