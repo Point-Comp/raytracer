@@ -59,9 +59,8 @@ class ggx : public material {
         return D(h) * h.y() / (4 * wo_dot_h);
     }
 
-    bool sample_bsdf(const vec3& wo, bsdf_sample& out) const override {
-        if (wo.y() <= 0) return false;
-
+    // Draws h from D(h) * cos(theta_h) and reflects wo about it; the result can be below the surface
+    vec3 sample_direction(const vec3& wo) const {
         double u1 = random_double();
         double u2 = random_double();
         double tan2_theta = alpha * alpha * u1 / (1 - u1);
@@ -70,7 +69,13 @@ class ggx : public material {
         double phi        = 2 * pi * u2;
         vec3 h(sin_theta * std::cos(phi), cos_theta, sin_theta * std::sin(phi));
 
-        out.direction = 2 * dot(wo, h) * h - wo;
+        return 2 * dot(wo, h) * h - wo;
+    }
+
+    bool sample_bsdf(const vec3& wo, bsdf_sample& out) const override {
+        if (wo.y() <= 0) return false;
+
+        out.direction = sample_direction(wo);
         if (out.direction.y() <= 0) return false;
 
         out.value = eval(out.direction, wo);

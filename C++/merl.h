@@ -2,6 +2,7 @@
 #define MERL_H
 
 #include "material.h"
+#include "ggx.h"
 
 #include <fstream>
 #include <stdexcept>
@@ -11,20 +12,12 @@
 class merl : public material {
   public:
     merl(const std::string& filename) {
-        std::ifstream file(filename, std::ios::in | std::ios::binary);
-        if (!file.is_open())
-            throw std::runtime_error("merl: cannot open file: " + filename);
+        load(filename);
+    }
 
-        int dims[3];
-        file.read((char*)dims, sizeof(dims));
-        size_t n = size_t(dims[0]) * dims[1] * dims[2];
-        if (n != size_t(res_theta_h) * res_theta_d * res_phi_d)
-            throw std::runtime_error("merl: unexpected dimensions in " + filename);
-
-        brdf.resize(3 * n);
-        file.read((char*)brdf.data(), 3 * n * sizeof(double));
-        if (!file)
-            throw std::runtime_error("merl: file too short: " + filename);
+    merl(const std::string& filename, const std::string& params_path, const std::string& material_name)
+      : lobe(make_shared<ggx>(params_path, material_name)), p_ggx(0.8) {
+        load(filename);
     }
 
     color eval(const vec3& wi, const vec3& wo) const override {
@@ -59,14 +52,22 @@ class merl : public material {
 
     double pdf(const vec3& wi, const vec3& wo) const override {
         if (wi.y() <= 0 || wo.y() <= 0) return 0.0;
-        return wi.y() / pi;
+        double cosine = wi.y() / pi;
+        if (!lobe) return cosine;
+        return p_ggx * lobe->pdf(wi, wo) + (1 - p_ggx) * cosine;
     }
 
     bool sample_bsdf(const vec3& wo, bsdf_sample& out) const override {
         if (wo.y() <= 0) return false;
 
-        vec3 dir = vec3(0,1,0) + random_unit_vector();
-        if (dir.near_zero()) dir = vec3(0,1,0);
+        vec3 dir;
+        if (lobe && random_double() < p_ggx) {
+            dir = lobe->sample_direction(wo);
+        } else {
+            dir = vec3(0,1,0) + random_unit_vector();
+            if (dir.near_zero()) dir = vec3(0,1,0);
+        }
+        if (dir.y() <= 0) return false;
         out.direction = unit_vector(dir);
 
         out.value = eval(out.direction, wo);
@@ -75,6 +76,23 @@ class merl : public material {
     }
 
   private:
+    void load(const std::string& filename) {
+        std::ifstream file(filename, std::ios::in | std::ios::binary);
+        if (!file.is_open())
+            throw std::runtime_error("merl: cannot open file: " + filename);
+
+        int dims[3];
+        file.read((char*)dims, sizeof(dims));
+        size_t n = size_t(dims[0]) * dims[1] * dims[2];
+        if (n != size_t(res_theta_h) * res_theta_d * res_phi_d)
+            throw std::runtime_error("merl: unexpected dimensions in " + filename);
+
+        brdf.resize(3 * n);
+        file.read((char*)brdf.data(), 3 * n * sizeof(double));
+        if (!file)
+            throw std::runtime_error("merl: file too short: " + filename);
+    }
+
     static constexpr int res_theta_h = 90;
     static constexpr int res_theta_d = 90;
     static constexpr int res_phi_d   = 180;
@@ -84,6 +102,8 @@ class merl : public material {
     static constexpr double blue_scale  = 1.66 / 1500.0;
 
     std::vector<double> brdf;
+    shared_ptr<ggx> lobe;
+    double p_ggx = 0.0;
 
     static vec3 rotate_vector(const vec3& v, const vec3& axis, double angle) {
         double c = std::cos(angle);

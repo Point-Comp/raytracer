@@ -22,6 +22,8 @@ int main(int argc, char** argv) {
 
     shared_ptr<material> teapot_mat;
     if (teapot_name == "merl")
+        teapot_mat = make_shared<merl>("../Data/merl/gold-metallic-paint.binary", "../Data/ggx_params.json", "gold-metallic-paint");
+    else if (teapot_name == "merl-cosine")
         teapot_mat = make_shared<merl>("../Data/merl/gold-metallic-paint.binary");
     else
         teapot_mat = make_shared<ggx>("../Data/ggx_params.json", "gold-metallic-paint");
