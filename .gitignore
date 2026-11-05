@@ -18,3 +18,7 @@ test_merl
 test_ggx
 before.pfm
 after.pfm
+test_merl_sampling
+test_ggx_reference
+C++/teapot_*
+__pycache__/
